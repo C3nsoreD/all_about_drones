@@ -69,6 +69,7 @@ class Drone:
 
 
 if __name__ == "__main__":
+    # Runnig test for the drone client
     d1 = Drone(address)
     d1.connect()
     d1.send_data()
