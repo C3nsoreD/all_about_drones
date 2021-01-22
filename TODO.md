@@ -3,7 +3,6 @@
 ## General
 - Drone client code
 - Server client code
-- 
 
 ## Server-side
 -- Add multiple client support
