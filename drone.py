@@ -22,7 +22,7 @@ address = ('localhost', 9999)
 # recived = str(soc.recv(1024), 'utf-8')
 
 class Drone:
-    def __init__(self, addr):
+    def __init__(self,  addr, request):
         self._id = self._get_id()
         self._addr = addr
         self.soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
