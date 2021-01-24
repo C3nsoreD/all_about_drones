@@ -77,65 +77,63 @@ class Message:
         tiow.close()
         return obj
 
-
     def _create_message(self, *, content_bytes, content_type, content_encoding, from_addr):
-        # create the json header for the message
-        jsonheader = {
-            "bytesorder": sys.byteorder,
-            "content-type": content_type,
-            "content-encoding": content_encoding,
-            "content-len": len(content_bytes),
-            "address": from_addr,
-        }
-        # encode the header into bytes
-        jsonheader_bytes = self._json_encode(jsonheader, "utf-8")
-        message_hdr = struct.pack(">H", len(jsonheader_bytes))
-        # create the final message
-        message = message_hdr + jsonheader_bytes + content_bytes
+        # # create the json header for the message
+        # jsonheader = {
+        #     "bytesorder": sys.byteorder,
+        #     "content-type": content_type,
+        #     "content-encoding": content_encoding,
+        #     "content-lenght": len(content_bytes),
+        #     "address": from_addr,
+        # }
+        # # encode the header into bytes
+        # jsonheader_bytes = self._json_encode(jsonheader, "utf-8")
+        # message_hdr = struct.pack(">H", len(jsonheader_bytes))
+        # # create the final message
+        # message = message_hdr + jsonheader_bytes + content_bytes
+        #
+        # return message
+        pass
 
-        return message
 
     def read(self):
-        self._read()
-
-        if self._jsonheader_len is None:
-            self.process_protoheader()
-
-        if self._jsonheader_len is not None:
-            if self.jsonheader is None:
-                self.process_jsonresponse()
-
-        if self.jsonheader:
-            if self.response is None:
-                self.process_response()
+        pass
 
     def write(self):
-        if not self._request_queued:
-            self.queued_request()
+        pass
 
-        self._write()
-        if self._request_queued:
-            if not self._send_buffer:
-                self._set_selectors_event_mask("r")
+    def process_event(self, mask):
+        if mask & selectors.EVENT_READ:
+            self.read()
+        if mask & selectors.EVENT_WRITE:
+            self.write()
 
+    # def queued_request(self):
+    #     content = self.request["content"]
+    #     content_type = self.request["content-type"]
+    #     content_encoding = self.request["encoding"]
+    #
+    #     if content_type == "text/json":
+    #         req = {
+    #             "content_bytes": self._json_encode(content, content_encoding),
+    #             "content_type": content_type,
+    #             "content_encoding": content_encoding,
+    #         }
+    #     else:
+    #         req = {
+    #             "content_bytes": content,
+    #             "content_type": content_type,
+    #             "content_encoding": content_encoding,
+    #         }
+    #     message = self._create_message(**req)
+    #     self._send_buffer += message
+    #     self._request_queued = True
 
-    def queued_request(self):
-        content = self.request["content"]
-        content_type = self.request["content-type"]
-        content_encoding = self.request["encoding"]
-
-        if content_type == "text/json":
-            req = {
-                "content_bytes": self._json_encode(content, content_encoding),
-                "content_type": content_type,
-                "content_encoding": content_encoding,
-            }
-        else:
-            req = {
-                "content_bytes": content,
-                "content_type": content_type,
-                "content_encoding": content_encoding,
-            }
-        message = self._create_message(**req)
-        self._send_buffer += message
-        self._request_queued = True
+    def process_header(self):
+        hdrlen = self._jsonheader_len
+        if len(self._recv_buffer) >= hdrlen:
+            self.jsonheader() = self._json_decode(self._recv_buffer[:hdrlen], "utf-8")
+            self._recv_buffer = self._recv_buffer[hdrlen:]
+            for reqhdr in {'bytesorder', 'content-length', 'content-type', 'content-encoding', 'addresses'}:
+                if reqhdr not in self.jsonheader:
+                    raise ValueError(f"Missing required header '{reqhdr}' ")

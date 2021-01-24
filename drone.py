@@ -7,6 +7,7 @@ The drone object is a simulation of a real drone.
 """
 import socket
 import random
+from datalink import Message
 
 address = ('localhost', 9999)
 # Client to connect to server
@@ -21,13 +22,12 @@ address = ('localhost', 9999)
 # len_sent = soc.send(message)
 # recived = str(soc.recv(1024), 'utf-8')
 
-class Drone:
+class DroneDataGenerator:
     def __init__(self,  addr, request):
         self._id = self._get_id()
         self._addr = addr
         self.soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._message = bytes(f"I am drone {self._id}", encoding='utf-8')
-
 
     def _data(self):
         """
@@ -68,12 +68,43 @@ class Drone:
         return f"Drone with id {self._id}"
 
 
+class DroneClient(Message):
+    """
+        Drone client is responsible for creating messages sent between drones and servers
+
+    """
+    def __init__(self, selector, sock, addr, request, data):
+        super().__init__(selector, sock, addr, request)
+        self.data = data
+
+    def read(self):
+        """ Overrides read() in Message cls
+            Reads data and processes it according to the header options
+        """
+        self._read() # adds data to receive buffer
+
+        if self._jsonheader_len is None:
+            self.process_header()
+        if self._jsonheader_len is not None:
+            if self.jsonheader is None:
+                self.process_jsonresponse()
+        if self.jsonheader:
+            if self.response is None:
+                self.process_response()
+
+    def write(self):
+        # checks if there is queued Message
+        if not self._request_queued:
+            self.queued_request()
+
+        self._write()
+
+        if self._request_queued:
+            if not self._send_buffer:
+                # nothing in the buffer so set selectors to read.
+                self._set_selectors_event_mask("r")
+
+
+
 if __name__ == "__main__":
-    # Runnig test for the drone client
-    d1 = Drone(address)
-    d1.connect()
-    d1.send_data()
-
-    print(d1.recieved())
-
-    print(d1)
+    client = DroneClient()
