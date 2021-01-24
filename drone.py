@@ -16,26 +16,40 @@ from datalink.Message import Message
 class ClientMessage(Message):
     """
     Drone client is responsible for creating messages sent between drones and servers
-
     """
-    def __init__(self, selector, sock, addr, request, data):
-        super().__init__(selector, sock, addr, request)
-        self.data = data
+    def __init__(self, selector, sock, addr, request):
+        super().__init__(selector, sock, addr)
+        # self.data = data
+        self.request = request
+        self._request_queued = False
+        self.response = None
 
-        def read(self):
-            """ Overrides read() in Message cls
+    def _process_response_json_content(self):
+        content = self.response
+        result = self.content.get("result")
+        print(f"get result: {result}")
+
+    def _process_response_binary_content(self):
+        content = self.response
+        print(f"got response {repr(content)}")
+
+    def read(self):
+        """ Overrides read() in Message cls
             Reads data and processes it according to the header options
-            """
-            self._read() # adds data to receive buffer
+        """
+        self._read() # adds data to receive buffer
 
-            if self._jsonheader_len is None:
-                self.process_header()
-            if self._jsonheader_len is not None:
-                if self.jsonheader is None:
-                    self.process_jsonresponse()
-            if self.jsonheader:
-                if self.response is None:
-                    self.process_response()
+        if self._jsonheader_len is None:
+            self.process_protoheader()
+
+        if self._jsonheader_len is not None:
+            if self.jsonheader is None:
+                self.process_jsonheader()
+
+        if self.jsonheader:
+            if self.response is None:
+                self.process_response()
+
 
     def write(self):
         # checks if there is queued Message
@@ -43,7 +57,6 @@ class ClientMessage(Message):
             self.queued_request()
 
             self._write()
-
             if self._request_queued:
                 if not self._send_buffer:
                     # nothing in the buffer so set selectors to read.
@@ -51,24 +64,46 @@ class ClientMessage(Message):
 
     def queued_request(self):
         content = self.request["content"]
-        content_type = self.request["content-type"]
+        content_type = self.request["type"]
         content_encoding = self.request["encoding"]
 
         if content_type == "text/json":
             req = {
-            "content_bytes": self._json_encode(content, content_encoding),
-            "content_type": content_type,
-            "content_encoding": content_encoding,
+                "content_bytes": self._json_encode(content, content_encoding),
+                "content_type": content_type,
+                "content_encoding": content_encoding,
             }
         else:
             req = {
-            "content_bytes": content,
-            "content_type": content_type,
-            "content_encoding": content_encoding,
+                "content_bytes": content,
+                "content_type": content_type,
+                "content_encoding": content_encoding,
             }
             message = self._create_message(**req)
             self._send_buffer += message
             self._request_queued = True
+
+    def process_response(self):
+        content_len = self.jsonheader["content-length"]
+        if not len(self._recv_buffer) >= content_len:
+            return
+        data = self._recv_buffer[:content_len]
+        self._recv_buffer = self._recv_buffer[content_len:]
+        if self.jsonheader["content-type"] == "text/json":
+            encoding = self.jsonheader["content-encoding"]
+            self.response = self._json_decode(data, encoding)
+            print("received response", repr(self.response), "from", self.addr)
+            self._process_response_json_content()
+        else:
+            # Binary or unknown content-type
+            self.response = data
+            print(
+                f'received {self.jsonheader["content-type"]} response from',
+                self.addr,
+            )
+            self._process_response_binary_content()
+        # Close when response has been processed
+        self.close()
 
 
 class Drone:
@@ -130,20 +165,3 @@ class Drone:
 
     def __str__(self):
         return f"Drone with id {self._id}"
-
-
-if __name__ == "__main__":
-    address = ('localhost', 9999)
-    # Client to connect to server
-    # soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    # soc.connect(address)
-    #
-    # # Send message
-    # message = b'I am drone 2'
-    #
-    # print(f"Sending: {message}")
-    #
-    # len_sent = soc.send(message)
-    # recived = str(soc.recv(1024), 'utf-8')
-
-    client = Drone(address)

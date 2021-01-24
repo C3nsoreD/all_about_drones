@@ -9,7 +9,7 @@ import struct
 import json
 import selectors
 
-# The message:
+#  Message model:
 #   Representation information sent from the drone to the server and vice versa
 #   the message contains agregated data from collected from the sensors.
 #   Data sent though sockets is sent as bytes thus, it to be converted.
@@ -19,17 +19,12 @@ import selectors
 
 ## TODO: messaging data link for S2D or D2D
 class Message:
-    def __init__(self, sock, addr, selector, request):
+    def __init__(self, sock, addr, selector):
         self._jsonheader_len = None
         self.jsonheader = None
-        self.response = None
         self.sock = sock
         self.addr = addr
-
-        ## Keep track of to and from addresses
-        # self.to_addr = None
-        # self.from_addr = None
-
+        self.selector = selector
         ## buffer for storing data tempararily
         self._recv_buffer = b""     # Initially an empty byte string
         self._send_buffer = b""
@@ -51,7 +46,6 @@ class Message:
             else:
                 raise RuntimeError("Peer closed")
 
-
     def _write(self):
         # check if there is something to send
         if self._send_buffer:
@@ -71,30 +65,39 @@ class Message:
 
     def _json_decode(self, json_bytes, encoding):
         tiow = io.TextIOWrapper(
-            io.BytesIO(json_bytes, encoding, newline="")
+            io.BytesIO(json_bytes), encoding, newline=""
         )
         obj = json.load(tiow)
         tiow.close()
         return obj
 
-    def _create_message(self, *, content_bytes, content_type, content_encoding, from_addr):
-        # # create the json header for the message
-        # jsonheader = {
-        #     "bytesorder": sys.byteorder,
-        #     "content-type": content_type,
-        #     "content-encoding": content_encoding,
-        #     "content-lenght": len(content_bytes),
-        #     "address": from_addr,
-        # }
-        # # encode the header into bytes
-        # jsonheader_bytes = self._json_encode(jsonheader, "utf-8")
-        # message_hdr = struct.pack(">H", len(jsonheader_bytes))
-        # # create the final message
-        # message = message_hdr + jsonheader_bytes + content_bytes
-        #
-        # return message
-        pass
+    def _create_message(self, *, content_bytes, content_type, content_encoding):
+        # create the json header for the message
+        jsonheader = {
+            "bytesorder": sys.byteorder,
+            "content-type": content_type,
+            "content-encoding": content_encoding,
+            "content-length": len(content_bytes),
+        }
+        # encode the header into bytes
+        jsonheader_bytes = self._json_encode(jsonheader, "utf-8")
+        message_hdr = struct.pack(">H", len(jsonheader_bytes))
+        # create the final message
+        message = message_hdr + jsonheader_bytes + content_bytes
 
+        return message
+
+    def _set_selector_events_mask(self, mode):
+        """Set selector to listen for events: mode is 'r', 'w', or 'rw'."""
+        if mode == "r":
+            events = selectors.EVENT_READ
+        elif mode == "w":
+            events = selectors.EVENT_WRITE
+        elif mode == "rw":
+            events = selectors.EVENT_READ | selectors.EVENT_WRITE
+        else:
+            raise ValueError(f"Invalid events mask mode {repr(mode)}.")
+        self.selector.modify(self.sock, events, data=self)
 
     def read(self):
         pass
@@ -102,38 +105,53 @@ class Message:
     def write(self):
         pass
 
-    def process_event(self, mask):
+    def process_events(self, mask):
         if mask & selectors.EVENT_READ:
             self.read()
         if mask & selectors.EVENT_WRITE:
             self.write()
 
-    # def queued_request(self):
-    #     content = self.request["content"]
-    #     content_type = self.request["content-type"]
-    #     content_encoding = self.request["encoding"]
-    #
-    #     if content_type == "text/json":
-    #         req = {
-    #             "content_bytes": self._json_encode(content, content_encoding),
-    #             "content_type": content_type,
-    #             "content_encoding": content_encoding,
-    #         }
-    #     else:
-    #         req = {
-    #             "content_bytes": content,
-    #             "content_type": content_type,
-    #             "content_encoding": content_encoding,
-    #         }
-    #     message = self._create_message(**req)
-    #     self._send_buffer += message
-    #     self._request_queued = True
 
-    def process_header(self):
+    def process_protoheader(self):
+        """
+         Process the request and removes the protoheader;
+         takes the rest of the request `[hdrlen:]` and updates _recv_buffer
+        """
+        hdrlen = 2
+        if len(self._recv_buffer) >= hdrlen:
+            self._jsonheader_len = struct.unpack(
+                ">H", self._recv_buffer[:hdrlen]
+            )[0]
+            self._recv_buffer = self._recv_buffer[hdrlen:]
+
+    def process_jsonheader(self):
         hdrlen = self._jsonheader_len
+
         if len(self._recv_buffer) >= hdrlen:
             self.jsonheader = self._json_decode(self._recv_buffer[:hdrlen], "utf-8")
             self._recv_buffer = self._recv_buffer[hdrlen:]
-            for reqhdr in {'bytesorder', 'content-length', 'content-type', 'content-encoding', 'addresses'}:
+            for reqhdr in {'bytesorder', 'content-length', 'content-type', 'content-encoding'}:
                 if reqhdr not in self.jsonheader:
                     raise ValueError(f"Missing required header '{reqhdr}' ")
+
+
+    def close(self):
+        print("closing connection to", self.addr)
+        try:
+            self.selector.unregister(self.sock)
+        except Exception as e:
+            print(
+                "error: selectors.unregister() exception for",
+                f"{self.addr}: {repr(e)}"
+            )
+
+        try:
+            self.sock.close()
+        except OSError as e:
+            print(
+                "Error: sock.close() for",
+                f"{self.addr}:{repr(e)} "
+            )
+        finally:
+            # garbage collection, delete ref to object.
+            self.sock = None
