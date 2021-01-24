@@ -132,7 +132,7 @@ class Message:
     def process_header(self):
         hdrlen = self._jsonheader_len
         if len(self._recv_buffer) >= hdrlen:
-            self.jsonheader() = self._json_decode(self._recv_buffer[:hdrlen], "utf-8")
+            self.jsonheader = self._json_decode(self._recv_buffer[:hdrlen], "utf-8")
             self._recv_buffer = self._recv_buffer[hdrlen:]
             for reqhdr in {'bytesorder', 'content-length', 'content-type', 'content-encoding', 'addresses'}:
                 if reqhdr not in self.jsonheader:
