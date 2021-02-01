@@ -35,7 +35,7 @@ class ServerMessage(Message):
         if action == "get-task":
             query = self.request.get("value")
             answer = request_search.get(query) or f'No match for "{query}".'
-            content = {"result": answer}
+            content = {"result ": answer}
         else:
             content = {"result": f'Error: invalid action "{action}".'}
         content_encoding = "utf-8"
@@ -48,8 +48,8 @@ class ServerMessage(Message):
 
     def _create_response_binary_content(self):
         response = {
-            "content_bytes": b"First 10 bytes of request: "
-            + self.request[:10],
+            "content_bytes": b"Recieved the following messsage: "
+            + self.request,
             "content_type": "binary/custom-server-binary-type",
             "content_encoding": "binary",
         }

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-    Message: data object used to send and receive data between drones and server
+    Message: data model used to send and receive data between drones and server
 """
 import sys
 import io
@@ -31,7 +31,10 @@ class Message:
         ## status variables that keep record of queue states
 
     def _read(self):
-        """ Reads data from the socket object.
+        """ Read helper
+            reads data from sock connection and handles errors
+            Stores data to a _recv_buffer that collects messages
+
         """
         try:
             # reads data from sock
@@ -40,7 +43,7 @@ class Message:
             # catches any errors and forwards it to __main__
             pass
         else:
-            # check if any data was sent; i.e data is not None
+            # check if data has been recieved; i.e data is not None
             if data:
                 self._recv_buffer += data   # add data to buffer
             else:
@@ -55,7 +58,7 @@ class Message:
             except BlockingIOError:
                 pass
             else:
-                # add data onto the send buffer
+                # append data onto the send buffer
                 self._send_buffer += self._send_buffer[sent:]
 
     def _json_encode(self, obj, encoding):
@@ -72,7 +75,8 @@ class Message:
         return obj
 
     def _create_message(self, *, content_bytes, content_type, content_encoding):
-        # create the json header for the message
+        # creates the json header for a message
+
         jsonheader = {
             "bytesorder": sys.byteorder,
             "content-type": content_type,
