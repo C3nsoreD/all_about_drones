@@ -51,7 +51,7 @@ class LoopBackFilter(BaseFilter):
 
     def tx(self, packet, interface):
         if not packet:
-            return None:
+            return None
         else:
             self.sent_hashes[hash(packet)] += 1
             return packet

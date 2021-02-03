@@ -15,6 +15,9 @@ class Node:
         # the interfaces object can be populated or empty
         self.interfaces = interfaces or []
         self.ID = self._generate_ID()
+        self.action = None
+        self.data = None
+
 
     @staticmethod
     def _generate_ID(sel, charset='abcdef0987654321', segment=9, segment_len=3, delimiter='-'):
@@ -26,3 +29,5 @@ class Node:
             sub  = ''.join(random.choice(charset) for _ in range(segment_len))
             addr.append(sub)
         return delimiter.join(addr)
+
+    def _s
