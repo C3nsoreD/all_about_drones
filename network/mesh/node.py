@@ -1,5 +1,5 @@
 import random
-
+from data import Data
 
 
 class Node:

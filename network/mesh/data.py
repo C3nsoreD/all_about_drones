@@ -14,17 +14,8 @@ class Data:
         self.data['header']  = header if header != None else self._create_header(action)
         self.data['message'] = 'Nothing'
 
-    def __repr__(self):
-        return f"Data from {self.data['drone_id']}\n"
-
     def __str__(self):
-        _data =  {
-            'header': self.data['header'],
-            'message': self.data['message'],
-            }
-        # data = json.dumps(_data)
         return json.dumps(self.__dict__, indent=2, separators=(',', ': '))
-
 
     def _create_header(self, action, _from=None, _to=None):
         # Responsible for creating the message header
@@ -35,10 +26,3 @@ class Data:
             'action': action,
         }
         return _hdr
-
-
-# if __name__ == "__main__":
-#
-#     drone_data_1 = Data(drone_id="drone_1", action="my_action", 'action')
-#
-#     print(drone_data_1.data)
