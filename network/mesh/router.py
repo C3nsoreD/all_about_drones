@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 class Router(object):
     node = None
     routes = []
