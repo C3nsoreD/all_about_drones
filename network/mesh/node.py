@@ -30,4 +30,4 @@ class Node:
             addr.append(sub)
         return delimiter.join(addr)
 
-    def _s
+    

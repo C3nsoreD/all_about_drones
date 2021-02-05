@@ -3,7 +3,11 @@ import random
 
 
 class BaseFilter:
+    """ Implements a filter, which is used by a node on incoming data.
+        Each filter has receive and send `tr, tx` class method.
 
+
+    """
     @classmethod
     def tr(self, packet, interface):
         return packet
@@ -13,14 +17,20 @@ class BaseFilter:
         return packet
 
 
-
 class DuplicateFilter(BaseFilter):
+    """ Filter that creates duplicates of each request.
+
+    """
+
     def __init__(self):
+        # Create duplicate packets for recv and send
         self.last_sent = defaultdict(str)
         self.last_recv = defaultdict(str)
 
 
     def tr(self, packet, interface):
+        """ 
+        """
         if not packet or packet == self.last_recv[interface]:
             return None
         else:
