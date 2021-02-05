@@ -63,7 +63,6 @@ class VirtualLink:
         else:
             self.log("Could not recv the link is down.")
 
-
     def send(self, packet, addr=broadcast_addr):
 
         if self.keep_listening:
