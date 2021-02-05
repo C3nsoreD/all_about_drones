@@ -74,3 +74,46 @@ class VirtualLink:
                 self.inq[self.broadcast_addr].put(packet)
         else:
             self.log("Couldn't send the link is down.")
+
+
+class UPDLink(threading.Thread, VirtualLink):
+
+    def __init__(self, name="en0", port=2020):
+        threading.Thread.__init__(self)
+        VirtualLink.__init__(self, name=name)
+        self.port = port
+
+        self._initsocket()
+
+    def __repr__(self):
+        return "< %s >" % self.name
+
+    def _initsocket(self):
+
+        self.send_socket = socket(AF_INET, SOCK_DGRAM)
+        self.send_socket.setblocking(0)
+        self.send_socket.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
+
+        self.recv_socket = socket(AF_INET, SOCK_DGRAM)
+        self.recv_socket.setbloackng(0)
+
+        self.recv_socket.setsockopt(SOL_SOCKET, SO_REUSEPORT, 1)
+        self.recv_socket.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
+        self.recv_socket.bind(('', port))
+
+
+    def run(self):
+
+        while self.keep_listening:
+            try:
+                read_ready, w, x = select.select([self.recv_socket], [], [], 0.01)
+            except Exception:
+                pass
+
+            if read_ready:
+                packet, addr = read_ready[0].recvfrom(4096)
+                if addr[1] == self.port:
+                    for addr, recv_queue in self.inq.items():
+                        recv_queue.put(packet)
+                else:
+                    pass
