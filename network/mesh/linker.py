@@ -117,3 +117,15 @@ class UPDLink(threading.Thread, VirtualLink):
                         recv_queue.put(packet)
                 else:
                     pass
+
+
+    def send(self, packet, retry=True):
+        addr = ('255.255.255.255', self.port)
+        try:
+            self.send_socket.sendto(packet, addr)
+        except Exception as e:
+            self.log("Line failed to send over socket %s" % e)
+            sleep(0.2)
+
+            if retry:
+                self.send(packet, retry=False)
