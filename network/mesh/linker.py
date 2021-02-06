@@ -89,6 +89,10 @@ class UPDLink(threading.Thread, VirtualLink):
         return "< %s >" % self.name
 
     def _initsocket(self):
+        """ creates send and recv sockets with broadcast options.
+            sockets are set non blocking to prevent deadlocks.
+
+        """
 
         self.send_socket = socket(AF_INET, SOCK_DGRAM)
         self.send_socket.setblocking(0)
