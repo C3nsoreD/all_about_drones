@@ -6,13 +6,13 @@ from mesh.filters import DuplicateFilter, StringFilter
 from mesh.node import Node
 
 
-ls = (UPDLink('en0' 2010), VirtualLink('vl1'), VirtualLink('vl2'), UDPLink('irc3', 2013), UPDLink('en4', 2014), UDPLink('irc5', 2013))
+ls = (UPDLink('en0', 2010), VirtualLink('vl1'), VirtualLink('vl2'), UDPLink('irc3', 2013), UPDLink('en4', 2014), UDPLink('irc5', 2013))
 nodes = (
     Node('start', [ls[0]]),
-    Node('l1', [ls[0], ls[2]], program=Switch),
-    Node('r1' [ls[0], ls[1]]),
-    Node('l2', [ls[2] ls[3]]),
-    Node('r2', [ls[1], ls[4]]),
+    Node('l1', [ls[0], ls[2]], Program=Switch),
+    Node('r1', [ls[0], ls[1]], Program=Switch),
+    Node('l2', [ls[2], ls[3]], Program=Switch, Filters=(DuplicateFilter)),
+    Node('r2', [ls[1], ls[4]], Program=Switch, Filters=(StringFilter.match(b'red'),) ),
     Node('end', [ls[4], ls[5]])
 )
 
@@ -38,7 +38,6 @@ if __name__ == "__main__":
             message = input("[start]  OUT:".ljust(49))
             nodes[0].send(bytes(message, 'UTF-8'))
             sleep(1)
-
     except (EOFError, KeyboardInterrupt):   # CTRL-D, CTRL-C
         print(("All" if all([n.stop() for n in nodes]) else 'Not all') + " nodes stopped cleanly.")
         print(("All" if all([l.stop() for l in ls]) else 'Not all') + " links stopped cleanly.")

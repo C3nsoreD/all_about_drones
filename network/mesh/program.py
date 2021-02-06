@@ -27,7 +27,6 @@ class BaseProgram(threading.Thread):
         pass
 
 
-
 class RouteProgram(BaseProgram):
 
     router = Router()
@@ -53,3 +52,17 @@ class RouteProgram(BaseProgram):
 
             packet = bytes(line, 'utf-8') if type(line) is str else line
             self.node.send(packet, interface)
+
+
+class Switch(BaseProgram):
+    def recv(self, packet, interface):
+        other_interfaces = set(self.node.interfaces) - {interface}
+        if packet and other_interfaces:
+            self.node.log("SWITCH " + (str(interface) + ">>>> <" + "".join(i.name for i in other_interfaces)+">").ljust(30), packet.decode())
+            self.node.send(packet, interfaces=other_interfaces)
+
+
+class Printer(BaseProgram):
+    def recv(self, packet, interface):
+        sleep(0.2)
+        self.node.log(("\nPRINTER: %s" % interface).ljust(30), packet.decode())

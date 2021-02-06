@@ -38,7 +38,7 @@ class VirtualLink:
         return len(self.inq)
 
     def log(self, *args):
-        print("%s %s" % str(self).ljust(8), " ".join([strx(x) for x in args])))
+        print("%s %s" % str(self).ljust(8), " ".join([strx(x) for x in args]))
 
 
     def start(self):
@@ -76,7 +76,7 @@ class VirtualLink:
             self.log("Couldn't send the link is down.")
 
 
-class UPDLink(threading.Thread, VirtualLink):
+class UDPLink(threading.Thread, VirtualLink):
 
     def __init__(self, name="en0", port=2020):
         threading.Thread.__init__(self)

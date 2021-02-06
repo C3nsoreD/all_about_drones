@@ -77,7 +77,7 @@ class Node(threading.Thread):
         if packet:
             self.inq[interface].put(packet)
 
-    def send(self, packet interfacse=None):
+    def send(self, packet interfaces=None):
         interfaces = interfaces or self.interfaces
         interfaces = interfaces if hasattr(interfaces, __iter__) else [interfaces]
 
