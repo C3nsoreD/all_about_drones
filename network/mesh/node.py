@@ -1,22 +1,34 @@
 import random
+import threading
+import time
+
+from collections import defaultdict
+from queue import Queue
+
+from filters import LoopBackFilter
 from data import Data
 
 
-class Node:
+
+class Node(threading.Thread):
     """
      A node represents a drone in the network, the drone is connected to other drones via links
      the drone receives data and processes it according to the data's header;
     """
-    def __init__(self, name="d1", interfaces=None):
+    def __init__(self, name="d1", interfaces=None, Program=None, Filters=()):
         """
          A drone can join the network through collecting a list of other drones in the network through the interfaces object.
         """
+        threading.Thread.__init__()
         self.name = name
         # the interfaces object can be populated or empty
         self.interfaces = interfaces or []
         self.ID = self._generate_ID()
         self.action = None
         self.data = None
+        self.inq = defaultdict(Queue)
+        self.filters = [LoopBackFilter()] + [F() for F in Filters]
+        self.program = Program(node=self) if Program else None
 
 
     @staticmethod

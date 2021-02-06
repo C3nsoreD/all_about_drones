@@ -5,8 +5,6 @@ import random
 class BaseFilter:
     """ Implements a filter, which is used by a node on incoming data.
         Each filter has receive and send `tr, tx` class method.
-
-
     """
     @classmethod
     def tr(self, packet, interface):
@@ -29,7 +27,7 @@ class DuplicateFilter(BaseFilter):
 
 
     def tr(self, packet, interface):
-        """ 
+        """
         """
         if not packet or packet == self.last_recv[interface]:
             return None
