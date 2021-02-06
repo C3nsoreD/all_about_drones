@@ -63,3 +63,31 @@ class LoopBackFilter(BaseFilter):
         else:
             self.sent_hashes[hash(packet)] += 1
             return packet
+
+
+class StringFilter(BaseFilter):
+
+    def tr(self, packet, interface):
+        if not packet:
+            return None
+        if not self.inverse:
+            return packet if self.pattern in packet else None
+        else:
+            return packet if self.pattern not in packet else None
+
+        @classmethod
+        def match(cls, pattern, inverse=False):
+            string_pattern = pattern
+            invert_search = inverse
+
+            class DefinedStringFilter(cls):
+                pattern = string_pattern
+                inverse = invert_search
+            return DefinedStringFilter
+
+        @classmethod
+        def dontmatch(cls, pattern):
+            return cls.match(pattern, inverse=True)
+
+
+    
